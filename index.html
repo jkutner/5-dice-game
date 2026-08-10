@@ -89,6 +89,45 @@
       </div>
     </dialog>
 
+    <dialog id="handoff-dialog">
+      <div class="dialog-inner handoff-inner">
+        <p class="eyebrow">Turn complete</p>
+        <h2>Pass the dice.</h2>
+        <p><strong id="next-player">Player Two</strong> is up next. Send them this link to continue the same game.</p>
+        <label class="share-label" for="share-link">Game link</label>
+        <div class="share-row">
+          <input id="share-link" type="url" readonly />
+          <button class="copy-button" id="copy-link" type="button">Copy link</button>
+        </div>
+        <p class="copy-status" id="copy-status" aria-live="polite"></p>
+        <button class="text-button dialog-new-game" id="handoff-new-game" type="button">Start a different game</button>
+      </div>
+    </dialog>
+
+    <dialog id="turn-summary">
+      <div class="dialog-inner summary-inner">
+        <p class="eyebrow">Previously on Lucky Five</p>
+        <h2><span id="previous-player">Player One</span> scored.</h2>
+        <div class="summary-dice" id="summary-dice" aria-label="Previous turn's dice"></div>
+        <div class="turn-result">
+          <span id="previous-category">Chance</span>
+          <strong id="previous-score">0</strong>
+          <small>points</small>
+        </div>
+        <p id="continue-copy">Player Two, the dice are yours.</p>
+        <button class="roll-button" id="continue-game" type="button">Continue the game</button>
+      </div>
+    </dialog>
+
+    <dialog id="invalid-game">
+      <div class="dialog-inner">
+        <p class="eyebrow">Link problem</p>
+        <h2>Game not found.</h2>
+        <p>This game link is damaged or has been changed. Ask the other player to send it again.</p>
+        <button class="roll-button" id="invalid-new-game" type="button">Start new game</button>
+      </div>
+    </dialog>
+
     <script src="app.js"></script>
   </body>
 </html>

@@ -15,6 +15,7 @@ const CATEGORIES = [
 ];
 
 const UPPER_IDS = CATEGORIES.filter((category) => category.section === "upper").map((category) => category.id);
+const GAME_VERSION = 1;
 const PIP_POSITIONS = {
   1: [4], 2: [1, 7], 3: [1, 4, 7], 4: [1, 2, 6, 7],
   5: [1, 2, 4, 6, 7], 6: [1, 2, 3, 5, 6, 7]
@@ -28,7 +29,8 @@ const state = {
   held: [false, false, false, false, false],
   rollsLeft: 3,
   hasRolled: false,
-  rolling: false
+  rolling: false,
+  history: []
 };
 
 const elements = {
@@ -44,11 +46,108 @@ const elements = {
   gameOver: document.querySelector("#game-over"),
   winnerTitle: document.querySelector("#winner-title"),
   winnerCopy: document.querySelector("#winner-copy"),
-  finalScores: document.querySelector("#final-scores")
+  finalScores: document.querySelector("#final-scores"),
+  handoffDialog: document.querySelector("#handoff-dialog"),
+  nextPlayer: document.querySelector("#next-player"),
+  shareLink: document.querySelector("#share-link"),
+  copyStatus: document.querySelector("#copy-status"),
+  invalidGame: document.querySelector("#invalid-game"),
+  turnSummary: document.querySelector("#turn-summary"),
+  previousPlayer: document.querySelector("#previous-player"),
+  summaryDice: document.querySelector("#summary-dice"),
+  previousCategory: document.querySelector("#previous-category"),
+  previousScore: document.querySelector("#previous-score"),
+  continueCopy: document.querySelector("#continue-copy")
 };
 
 function createPlayer(name) {
   return { name, scores: Object.fromEntries(CATEGORIES.map((category) => [category.id, null])) };
+}
+
+function bytesToBase64Url(bytes) {
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+
+function base64UrlToBytes(value) {
+  const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+  const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+
+async function checksum(value) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return bytesToBase64Url(new Uint8Array(digest)).slice(0, 16);
+}
+
+function serializedGame() {
+  return {
+    v: GAME_VERSION,
+    p: state.activePlayer,
+    s: state.players.map((player) => CATEGORIES.map((category) => player.scores[category.id])),
+    h: state.history
+  };
+}
+
+async function createGameUrl() {
+  const payload = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(serializedGame())));
+  const signature = await checksum(payload);
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("game", `${payload}.${signature}`);
+  return url.toString();
+}
+
+function isValidScores(scores) {
+  return Array.isArray(scores) && scores.length === 2 && scores.every((card) =>
+    Array.isArray(card) && card.length === CATEGORIES.length && card.every((score) =>
+      score === null || (Number.isInteger(score) && score >= 0 && score <= 50)
+    )
+  );
+}
+
+function isValidHistory(history, scores) {
+  if (!Array.isArray(history) || history.length > CATEGORIES.length * 2) return false;
+  const seen = [new Set(), new Set()];
+  for (let index = 0; index < history.length; index++) {
+    const turn = history[index];
+    if (!Array.isArray(turn) || turn.length !== 4 || turn[0] !== index % 2) return false;
+    const [player, categoryIndex, dice, score] = turn;
+    if (!Number.isInteger(categoryIndex) || !CATEGORIES[categoryIndex] || seen[player].has(categoryIndex)) return false;
+    if (!Array.isArray(dice) || dice.length !== 5 || dice.some((die) => !Number.isInteger(die) || die < 1 || die > 6)) return false;
+    if (score !== scoreDice(CATEGORIES[categoryIndex].id, dice) || scores[player][categoryIndex] !== score) return false;
+    seen[player].add(categoryIndex);
+  }
+  return scores.every((card, player) => card.every((score, categoryIndex) =>
+    (score === null) === !seen[player].has(categoryIndex)
+  ));
+}
+
+async function loadGameFromUrl() {
+  const encoded = new URLSearchParams(window.location.search).get("game");
+  if (!encoded) return true;
+
+  try {
+    const parts = encoded.split(".");
+    if (parts.length !== 2 || await checksum(parts[0]) !== parts[1]) return false;
+    const game = JSON.parse(new TextDecoder().decode(base64UrlToBytes(parts[0])));
+    if (game.v !== GAME_VERSION || ![0, 1].includes(game.p) || !isValidScores(game.s) || !isValidHistory(game.h, game.s)) return false;
+    if (game.h.length % 2 !== game.p) return false;
+
+    state.players.forEach((player, playerIndex) => {
+      CATEGORIES.forEach((category, categoryIndex) => {
+        player.scores[category.id] = game.s[playerIndex][categoryIndex];
+      });
+    });
+    state.activePlayer = game.p;
+    state.viewedPlayer = game.p;
+    state.history = game.h;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function scoreDice(categoryId, dice) {
@@ -100,6 +199,17 @@ function renderDice() {
     die.addEventListener("click", () => toggleHold(index));
     elements.diceTray.appendChild(die);
   });
+}
+
+function createDie(value, className = "die") {
+  const die = document.createElement("div");
+  die.className = className;
+  PIP_POSITIONS[value].forEach((position) => {
+    const pip = document.createElement("span");
+    pip.className = `pip pip-${position}`;
+    die.appendChild(pip);
+  });
+  return die;
 }
 
 function renderScoreOptions() {
@@ -181,9 +291,11 @@ function rollDice() {
   }, 360);
 }
 
-function chooseScore(categoryId) {
+async function chooseScore(categoryId) {
   if (!state.hasRolled || state.players[state.activePlayer].scores[categoryId] !== null) return;
-  state.players[state.activePlayer].scores[categoryId] = scoreDice(categoryId, state.dice);
+  const score = scoreDice(categoryId, state.dice);
+  state.players[state.activePlayer].scores[categoryId] = score;
+  state.history.push([state.activePlayer, CATEGORIES.findIndex((category) => category.id === categoryId), [...state.dice], score]);
 
   if (state.players.every((player) => CATEGORIES.every((category) => player.scores[category.id] !== null))) {
     render();
@@ -198,6 +310,36 @@ function chooseScore(categoryId) {
   state.rollsLeft = 3;
   state.hasRolled = false;
   render();
+  await showHandoff();
+}
+
+async function showHandoff() {
+  elements.nextPlayer.textContent = state.players[state.activePlayer].name;
+  elements.shareLink.value = await createGameUrl();
+  window.history.replaceState({}, "", elements.shareLink.value);
+  elements.copyStatus.textContent = "";
+  elements.handoffDialog.showModal();
+}
+
+function showTurnSummary() {
+  const [playerIndex, categoryIndex, dice, score] = state.history.at(-1);
+  elements.previousPlayer.textContent = state.players[playerIndex].name;
+  elements.previousCategory.textContent = CATEGORIES[categoryIndex].label;
+  elements.previousScore.textContent = score;
+  elements.continueCopy.textContent = `${state.players[state.activePlayer].name}, the dice are yours.`;
+  elements.summaryDice.innerHTML = "";
+  dice.forEach((value) => elements.summaryDice.appendChild(createDie(value, "summary-die")));
+  elements.turnSummary.showModal();
+}
+
+async function copyGameLink() {
+  try {
+    await navigator.clipboard.writeText(elements.shareLink.value);
+    elements.copyStatus.textContent = "Copied. Send it to the next player.";
+  } catch {
+    elements.shareLink.select();
+    elements.copyStatus.textContent = "Select and copy the link above.";
+  }
 }
 
 function showGameOver() {
@@ -219,13 +361,25 @@ function resetGame() {
   state.rollsLeft = 3;
   state.hasRolled = false;
   state.rolling = false;
+  state.history = [];
+  window.history.replaceState({}, "", window.location.pathname);
   if (elements.gameOver.open) elements.gameOver.close();
+  if (elements.handoffDialog.open) elements.handoffDialog.close();
+  if (elements.turnSummary.open) elements.turnSummary.close();
+  if (elements.invalidGame.open) elements.invalidGame.close();
   render();
 }
 
 elements.rollButton.addEventListener("click", rollDice);
 document.querySelector("#new-game").addEventListener("click", resetGame);
 document.querySelector("#play-again").addEventListener("click", resetGame);
+document.querySelector("#handoff-new-game").addEventListener("click", resetGame);
+document.querySelector("#invalid-new-game").addEventListener("click", resetGame);
+document.querySelector("#copy-link").addEventListener("click", copyGameLink);
+document.querySelector("#continue-game").addEventListener("click", () => elements.turnSummary.close());
+elements.handoffDialog.addEventListener("cancel", (event) => event.preventDefault());
+elements.turnSummary.addEventListener("cancel", (event) => event.preventDefault());
+elements.invalidGame.addEventListener("cancel", (event) => event.preventDefault());
 document.querySelectorAll(".player-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     state.viewedPlayer = Number(tab.dataset.player);
@@ -233,4 +387,9 @@ document.querySelectorAll(".player-tab").forEach((tab) => {
   });
 });
 
-render();
+loadGameFromUrl().then((valid) => {
+  render();
+  if (!valid) elements.invalidGame.showModal();
+  else if (state.history.length === CATEGORIES.length * 2) showGameOver();
+  else if (state.history.length > 0) showTurnSummary();
+});

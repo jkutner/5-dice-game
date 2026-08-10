@@ -196,6 +196,25 @@ dialog::backdrop { background: rgba(14, 37, 32, .8); backdrop-filter: blur(4px);
 .final-score:last-child { border-right: 0; }
 .final-score span { display: block; font-size: 9px; text-transform: uppercase; }
 .final-score strong { font: 800 38px/1.2 "Fraunces", serif; }
+.handoff-inner { text-align: left; }
+.handoff-inner h2 { font-size: clamp(40px, 9vw, 58px); }
+.handoff-inner > p strong { color: var(--ink); }
+.share-label { display: block; margin: 28px 0 8px; color: var(--red); font-size: 9px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+.share-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.share-row input { min-width: 0; padding: 14px; color: var(--ink); background: white; border: 1px solid var(--line); border-right: 0; border-radius: 0; font: 10px/1.3 "DM Mono", monospace; }
+.copy-button { padding: 0 18px; color: white; background: var(--ink); border: 0; cursor: pointer; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.copy-button:hover { background: var(--red); }
+.copy-status { min-height: 18px; margin: 8px 0 15px !important; color: var(--red) !important; font-size: 9px !important; text-transform: uppercase; }
+.dialog-new-game { display: block; margin: 0 auto; }
+.summary-inner h2 { font-size: clamp(34px, 8vw, 52px); }
+.summary-dice { display: flex; justify-content: center; gap: 10px; margin: 28px 0; }
+.summary-die { position: relative; width: 54px; aspect-ratio: 1; background: var(--ink); border-radius: 9px; box-shadow: 0 5px 0 #102722; }
+.summary-die .pip { background: var(--paper-light); }
+.turn-result { display: grid; grid-template-columns: 1fr auto; align-items: end; padding: 16px 18px; color: white; background: var(--red); text-align: left; }
+.turn-result span { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
+.turn-result strong { grid-row: span 2; font: 800 40px/1 "Fraunces", serif; }
+.turn-result small { color: rgba(255,255,255,.7); font-size: 8px; text-transform: uppercase; }
+.summary-inner > p:not(.eyebrow) { margin: 22px 0; }
 
 @keyframes tumble { 0% { transform: rotate(0) scale(.85); } 50% { transform: rotate(12deg) scale(1.08); } 100% { transform: rotate(0) scale(1); } }
 
@@ -223,6 +242,11 @@ dialog::backdrop { background: rgba(14, 37, 32, .8); backdrop-filter: blur(4px);
   .score-grid { grid-template-columns: repeat(2, 1fr); }
   .scorecard-panel { padding: 20px 16px; }
   .dialog-inner { padding: 34px 20px; }
+  .share-row { grid-template-columns: 1fr; gap: 8px; }
+  .share-row input { border-right: 1px solid var(--line); }
+  .copy-button { min-height: 45px; }
+  .summary-dice { gap: 7px; }
+  .summary-die { width: min(15vw, 52px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
