@@ -187,15 +187,17 @@ function renderDice() {
   state.dice.forEach((value, index) => {
     const die = document.createElement("button");
     die.type = "button";
-    die.className = `die${state.held[index] ? " held" : ""}${state.rolling && !state.held[index] ? " rolling" : ""}`;
+    die.className = `die${!state.hasRolled ? " unrolled" : ""}${state.held[index] ? " held" : ""}${state.rolling && !state.held[index] ? " rolling" : ""}`;
     die.disabled = !state.hasRolled || state.rolling;
-    die.setAttribute("aria-label", `${value}, ${state.held[index] ? "held" : "not held"}`);
+    die.setAttribute("aria-label", state.hasRolled ? `${value}, ${state.held[index] ? "held" : "not held"}` : "Not rolled yet");
     die.setAttribute("aria-pressed", String(state.held[index]));
-    PIP_POSITIONS[value].forEach((position) => {
-      const pip = document.createElement("span");
-      pip.className = `pip pip-${position}`;
-      die.appendChild(pip);
-    });
+    if (state.hasRolled) {
+      PIP_POSITIONS[value].forEach((position) => {
+        const pip = document.createElement("span");
+        pip.className = `pip pip-${position}`;
+        die.appendChild(pip);
+      });
+    }
     die.addEventListener("click", () => toggleHold(index));
     elements.diceTray.appendChild(die);
   });

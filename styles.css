@@ -110,6 +110,11 @@ h3 { font-size: 28px; letter-spacing: -.025em; }
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .die:hover:not(:disabled) { transform: translateY(-3px); }
+.die.unrolled {
+  background: rgba(243, 234, 213, .16);
+  border: 2px dashed rgba(243, 234, 213, .28);
+  box-shadow: none;
+}
 .die.held { transform: translateY(-13px); box-shadow: 0 7px 0 #b94231, 0 15px 20px rgba(0,0,0,.25); outline: 3px solid var(--red); }
 .die.rolling { animation: tumble .35s ease; }
 .die:disabled { cursor: default; }
