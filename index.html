@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f3ead5" />
+    <title>Lucky Five — Yahtzee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <main class="app-shell">
+      <header class="masthead">
+        <div class="brand-mark" aria-hidden="true">5</div>
+        <div>
+          <p class="eyebrow">A game of nerve &amp; numbers</p>
+          <h1>Lucky Five</h1>
+        </div>
+        <button class="text-button" id="new-game" type="button">New game</button>
+      </header>
+
+      <section class="game-board">
+        <div class="play-area">
+          <div class="turn-heading">
+            <div>
+              <p class="eyebrow">Now rolling</p>
+              <h2><span id="active-player">Player One</span><span class="turn-dot"></span></h2>
+            </div>
+            <div class="roll-counter" aria-live="polite">
+              <span id="rolls-left">3</span>
+              <small>rolls left</small>
+            </div>
+          </div>
+
+          <div class="table-felt">
+            <div class="dice-tray" id="dice-tray" aria-label="Dice"></div>
+            <p class="hold-hint" id="hold-hint">Roll to start your turn</p>
+          </div>
+
+          <div class="roll-actions">
+            <button class="roll-button" id="roll-button" type="button">
+              <span id="roll-label">Roll the dice</span>
+              <span class="button-dice" aria-hidden="true">⚄</span>
+            </button>
+          </div>
+
+          <section class="score-choice" aria-labelledby="choice-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Make it count</p>
+                <h3 id="choice-title">Choose your score</h3>
+              </div>
+              <span class="score-note" id="score-note">Roll first to see your options</span>
+            </div>
+            <div class="score-grid" id="score-options"></div>
+          </section>
+        </div>
+
+        <aside class="scorecard-panel">
+          <div class="scorecard-top">
+            <p class="eyebrow">The ledger</p>
+            <h2>Scorecard</h2>
+          </div>
+          <div class="player-tabs" role="tablist" aria-label="Player scorecards">
+            <button class="player-tab active" data-player="0" role="tab" aria-selected="true" type="button">
+              <span class="player-name">Player One</span>
+              <strong id="tab-total-0">0</strong>
+            </button>
+            <button class="player-tab" data-player="1" role="tab" aria-selected="false" type="button">
+              <span class="player-name">Player Two</span>
+              <strong id="tab-total-1">0</strong>
+            </button>
+          </div>
+          <div class="scorecard" id="scorecard"></div>
+        </aside>
+      </section>
+    </main>
+
+    <dialog id="game-over">
+      <div class="dialog-inner">
+        <p class="eyebrow">Final tally</p>
+        <h2 id="winner-title">What a game.</h2>
+        <p id="winner-copy"></p>
+        <div class="final-scores" id="final-scores"></div>
+        <button class="roll-button" id="play-again" type="button">Play again</button>
+      </div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
