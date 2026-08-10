@@ -33,6 +33,8 @@ const state = {
   history: []
 };
 
+let pendingCategoryId = null;
+
 const elements = {
   diceTray: document.querySelector("#dice-tray"),
   activePlayer: document.querySelector("#active-player"),
@@ -57,7 +59,10 @@ const elements = {
   summaryDice: document.querySelector("#summary-dice"),
   previousCategory: document.querySelector("#previous-category"),
   previousScore: document.querySelector("#previous-score"),
-  continueCopy: document.querySelector("#continue-copy")
+  continueCopy: document.querySelector("#continue-copy"),
+  scoreConfirmation: document.querySelector("#score-confirmation"),
+  confirmCategory: document.querySelector("#confirm-category"),
+  confirmScore: document.querySelector("#confirm-score")
 };
 
 function createPlayer(name) {
@@ -225,7 +230,7 @@ function renderScoreOptions() {
     option.className = "score-option";
     option.disabled = !state.hasRolled || !available || state.rolling;
     option.innerHTML = `<span>${category.label}<small>${available ? category.detail : "Already scored"}</small></span><strong>${available ? (preview ?? "—") : scores[category.id]}</strong>`;
-    option.addEventListener("click", () => chooseScore(category.id));
+    option.addEventListener("click", () => requestScore(category.id));
     elements.scoreOptions.appendChild(option);
   });
 }
@@ -291,6 +296,28 @@ function rollDice() {
     state.rolling = false;
     render();
   }, 360);
+}
+
+function requestScore(categoryId) {
+  if (!state.hasRolled || state.players[state.activePlayer].scores[categoryId] !== null) return;
+  const category = CATEGORIES.find((candidate) => candidate.id === categoryId);
+  pendingCategoryId = categoryId;
+  elements.confirmCategory.textContent = category.label;
+  elements.confirmScore.textContent = scoreDice(categoryId, state.dice);
+  elements.scoreConfirmation.showModal();
+}
+
+function cancelScore() {
+  pendingCategoryId = null;
+  elements.scoreConfirmation.close();
+}
+
+async function confirmScore() {
+  const categoryId = pendingCategoryId;
+  if (!categoryId) return;
+  pendingCategoryId = null;
+  elements.scoreConfirmation.close();
+  await chooseScore(categoryId);
 }
 
 async function chooseScore(categoryId) {
@@ -364,10 +391,12 @@ function resetGame() {
   state.hasRolled = false;
   state.rolling = false;
   state.history = [];
+  pendingCategoryId = null;
   window.history.replaceState({}, "", window.location.pathname);
   if (elements.gameOver.open) elements.gameOver.close();
   if (elements.handoffDialog.open) elements.handoffDialog.close();
   if (elements.turnSummary.open) elements.turnSummary.close();
+  if (elements.scoreConfirmation.open) elements.scoreConfirmation.close();
   if (elements.invalidGame.open) elements.invalidGame.close();
   render();
 }
@@ -379,8 +408,11 @@ document.querySelector("#handoff-new-game").addEventListener("click", resetGame)
 document.querySelector("#invalid-new-game").addEventListener("click", resetGame);
 document.querySelector("#copy-link").addEventListener("click", copyGameLink);
 document.querySelector("#continue-game").addEventListener("click", () => elements.turnSummary.close());
+document.querySelector("#cancel-score").addEventListener("click", cancelScore);
+document.querySelector("#confirm-score-button").addEventListener("click", confirmScore);
 elements.handoffDialog.addEventListener("cancel", (event) => event.preventDefault());
 elements.turnSummary.addEventListener("cancel", (event) => event.preventDefault());
+elements.scoreConfirmation.addEventListener("cancel", cancelScore);
 elements.invalidGame.addEventListener("cancel", (event) => event.preventDefault());
 document.querySelectorAll(".player-tab").forEach((tab) => {
   tab.addEventListener("click", () => {

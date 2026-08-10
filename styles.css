@@ -220,6 +220,13 @@ dialog::backdrop { background: rgba(14, 37, 32, .8); backdrop-filter: blur(4px);
 .turn-result strong { grid-row: span 2; font: 800 40px/1 "Fraunces", serif; }
 .turn-result small { color: rgba(255,255,255,.7); font-size: 8px; text-transform: uppercase; }
 .summary-inner > p:not(.eyebrow) { margin: 22px 0; }
+.score-confirmation-inner h2 { margin-top: 8px; font-size: clamp(38px, 8vw, 54px); }
+.confirm-score { display: flex; align-items: baseline; justify-content: center; gap: 9px; margin: 25px 0 18px; color: white; background: var(--red); padding: 17px; }
+.confirm-score strong { font: 800 48px/1 "Fraunces", serif; }
+.confirm-score span { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+.confirm-actions { display: flex; align-items: center; justify-content: center; gap: 30px; margin-top: 28px; }
+.confirm-actions .text-button { margin-left: 0; }
+.confirm-actions .roll-button { min-width: 190px; }
 
 @keyframes tumble { 0% { transform: rotate(0) scale(.85); } 50% { transform: rotate(12deg) scale(1.08); } 100% { transform: rotate(0) scale(1); } }
 
@@ -252,6 +259,7 @@ dialog::backdrop { background: rgba(14, 37, 32, .8); backdrop-filter: blur(4px);
   .copy-button { min-height: 45px; }
   .summary-dice { gap: 7px; }
   .summary-die { width: min(15vw, 52px); }
+  .confirm-actions { flex-direction: column-reverse; gap: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
