@@ -348,11 +348,22 @@ function renderStatus() {
   elements.scoreNote.textContent = state.hasRolled ? "Select any open category to end your turn" : "Roll first to see your options";
 }
 
+function renderDocumentTitle() {
+  if (state.history.length === 0) {
+    document.title = "Play Yahtzee with me | Lucky Five";
+    return;
+  }
+
+  const [playerIndex, categoryIndex, , score] = state.history.at(-1);
+  document.title = `${state.players[playerIndex].name} scored ${score} in ${CATEGORIES[categoryIndex].label} | Lucky Five`;
+}
+
 function render() {
   renderDice();
   renderScoreOptions();
   renderScorecard();
   renderStatus();
+  renderDocumentTitle();
 }
 
 function toggleHold(index) {
