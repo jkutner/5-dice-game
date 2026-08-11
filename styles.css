@@ -201,6 +201,7 @@ dialog::backdrop { background: rgba(14, 37, 32, .8); backdrop-filter: blur(4px);
 .final-score:last-child { border-right: 0; }
 .final-score span { display: block; font-size: 9px; text-transform: uppercase; }
 .final-score strong { font: 800 38px/1.2 "Fraunces", serif; }
+.final-share-label { margin-top: 0; text-align: left; }
 .handoff-inner { text-align: left; }
 .handoff-inner h2 { font-size: clamp(40px, 9vw, 58px); }
 .handoff-inner > p strong { color: var(--ink); }

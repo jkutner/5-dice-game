@@ -51,6 +51,8 @@ const elements = {
   winnerTitle: document.querySelector("#winner-title"),
   winnerCopy: document.querySelector("#winner-copy"),
   finalScores: document.querySelector("#final-scores"),
+  finalShareLink: document.querySelector("#final-share-link"),
+  finalCopyStatus: document.querySelector("#final-copy-status"),
   handoffDialog: document.querySelector("#handoff-dialog"),
   nextPlayer: document.querySelector("#next-player"),
   shareLink: document.querySelector("#share-link"),
@@ -449,22 +451,33 @@ function showTurnSummary() {
 }
 
 async function copyGameLink() {
+  await copyLink(elements.shareLink, elements.copyStatus, "Copied. Send it to the next player.");
+}
+
+async function copyFinalLink() {
+  await copyLink(elements.finalShareLink, elements.finalCopyStatus, "Copied. Share the final tally.");
+}
+
+async function copyLink(input, status, successMessage) {
   try {
-    await navigator.clipboard.writeText(elements.shareLink.value);
-    elements.copyStatus.textContent = "Copied. Send it to the next player.";
+    await navigator.clipboard.writeText(input.value);
+    status.textContent = successMessage;
   } catch {
-    elements.shareLink.select();
-    elements.copyStatus.textContent = "Select and copy the link above.";
+    input.select();
+    status.textContent = "Select and copy the link above.";
   }
 }
 
-function showGameOver() {
+async function showGameOver() {
   const totals = state.players.map(getTotals);
   const tied = totals[0].total === totals[1].total;
   const winner = totals[0].total > totals[1].total ? state.players[0] : state.players[1];
   elements.winnerTitle.textContent = tied ? "A perfect tie." : `${winner.name} wins.`;
   elements.winnerCopy.textContent = tied ? "The dice could not separate you." : "Thirteen rounds, five dice, one well-earned victory.";
   elements.finalScores.innerHTML = state.players.map((player, index) => `<div class="final-score"><span>${player.name}</span><strong>${totals[index].total}</strong></div>`).join("");
+  elements.finalShareLink.value = await createGameUrl();
+  elements.finalCopyStatus.textContent = "";
+  window.history.replaceState({}, "", elements.finalShareLink.value);
   elements.gameOver.showModal();
 }
 
@@ -496,6 +509,7 @@ document.querySelector("#play-again").addEventListener("click", resetGame);
 document.querySelector("#handoff-new-game").addEventListener("click", resetGame);
 document.querySelector("#invalid-new-game").addEventListener("click", resetGame);
 document.querySelector("#copy-link").addEventListener("click", copyGameLink);
+document.querySelector("#copy-final-link").addEventListener("click", copyFinalLink);
 document.querySelector("#browse-ledger").addEventListener("click", browseLedger);
 elements.returnToHandoff.addEventListener("click", reopenHandoff);
 document.querySelector("#continue-game").addEventListener("click", () => elements.turnSummary.close());

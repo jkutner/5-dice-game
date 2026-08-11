@@ -85,6 +85,12 @@
         <h2 id="winner-title">What a game.</h2>
         <p id="winner-copy"></p>
         <div class="final-scores" id="final-scores"></div>
+        <label class="share-label final-share-label" for="final-share-link">Share the final tally</label>
+        <div class="share-row">
+          <input id="final-share-link" type="url" readonly />
+          <button class="copy-button" id="copy-final-link" type="button">Copy link</button>
+        </div>
+        <p class="copy-status" id="final-copy-status" aria-live="polite"></p>
         <button class="roll-button" id="play-again" type="button">Play again</button>
       </div>
     </dialog>
