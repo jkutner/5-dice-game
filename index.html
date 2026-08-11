@@ -100,9 +100,15 @@
           <button class="copy-button" id="copy-link" type="button">Copy link</button>
         </div>
         <p class="copy-status" id="copy-status" aria-live="polite"></p>
+        <button class="ledger-button" id="browse-ledger" type="button">Browse the ledger</button>
         <button class="text-button dialog-new-game" id="handoff-new-game" type="button">Start a different game</button>
       </div>
     </dialog>
+
+    <button class="return-to-handoff" id="return-to-handoff" type="button" hidden>
+      <span>Finished browsing?</span>
+      <strong>Return to game link</strong>
+    </button>
 
     <dialog id="turn-summary">
       <div class="dialog-inner summary-inner">

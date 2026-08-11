@@ -30,7 +30,8 @@ const state = {
   rollsLeft: 3,
   hasRolled: false,
   rolling: false,
-  history: []
+  history: [],
+  handoffPending: false
 };
 
 let pendingCategoryId = null;
@@ -62,7 +63,8 @@ const elements = {
   continueCopy: document.querySelector("#continue-copy"),
   scoreConfirmation: document.querySelector("#score-confirmation"),
   confirmCategory: document.querySelector("#confirm-category"),
-  confirmScore: document.querySelector("#confirm-score")
+  confirmScore: document.querySelector("#confirm-score"),
+  returnToHandoff: document.querySelector("#return-to-handoff")
 };
 
 function createPlayer(name) {
@@ -193,7 +195,7 @@ function renderDice() {
     const die = document.createElement("button");
     die.type = "button";
     die.className = `die${!state.hasRolled ? " unrolled" : ""}${state.held[index] ? " held" : ""}${state.rolling && !state.held[index] ? " rolling" : ""}`;
-    die.disabled = !state.hasRolled || state.rolling;
+    die.disabled = !state.hasRolled || state.rolling || state.handoffPending;
     die.setAttribute("aria-label", state.hasRolled ? `${value}, ${state.held[index] ? "held" : "not held"}` : "Not rolled yet");
     die.setAttribute("aria-pressed", String(state.held[index]));
     if (state.hasRolled) {
@@ -228,7 +230,7 @@ function renderScoreOptions() {
     const preview = state.hasRolled && available ? scoreDice(category.id, state.dice) : null;
     option.type = "button";
     option.className = "score-option";
-    option.disabled = !state.hasRolled || !available || state.rolling;
+    option.disabled = !state.hasRolled || !available || state.rolling || state.handoffPending;
     option.innerHTML = `<span>${category.label}<small>${available ? category.detail : "Already scored"}</small></span><strong>${available ? (preview ?? "—") : scores[category.id]}</strong>`;
     option.addEventListener("click", () => requestScore(category.id));
     elements.scoreOptions.appendChild(option);
@@ -266,7 +268,7 @@ function renderScorecard() {
 function renderStatus() {
   elements.activePlayer.textContent = state.players[state.activePlayer].name;
   elements.rollsLeft.textContent = state.rollsLeft;
-  elements.rollButton.disabled = state.rollsLeft === 0 || state.rolling;
+  elements.rollButton.disabled = state.rollsLeft === 0 || state.rolling || state.handoffPending;
   elements.rollLabel.textContent = state.hasRolled ? "Roll again" : "Roll the dice";
   elements.holdHint.textContent = !state.hasRolled ? "Roll to start your turn" : state.rollsLeft ? "Tap dice to hold them" : "Choose a category below";
   elements.scoreNote.textContent = state.hasRolled ? "Select any open category to end your turn" : "Roll first to see your options";
@@ -343,10 +345,23 @@ async function chooseScore(categoryId) {
 }
 
 async function showHandoff() {
+  state.handoffPending = true;
   elements.nextPlayer.textContent = state.players[state.activePlayer].name;
   elements.shareLink.value = await createGameUrl();
   window.history.replaceState({}, "", elements.shareLink.value);
   elements.copyStatus.textContent = "";
+  elements.returnToHandoff.hidden = true;
+  render();
+  elements.handoffDialog.showModal();
+}
+
+function browseLedger() {
+  elements.handoffDialog.close();
+  elements.returnToHandoff.hidden = false;
+}
+
+function reopenHandoff() {
+  elements.returnToHandoff.hidden = true;
   elements.handoffDialog.showModal();
 }
 
@@ -391,6 +406,7 @@ function resetGame() {
   state.hasRolled = false;
   state.rolling = false;
   state.history = [];
+  state.handoffPending = false;
   pendingCategoryId = null;
   window.history.replaceState({}, "", window.location.pathname);
   if (elements.gameOver.open) elements.gameOver.close();
@@ -398,6 +414,7 @@ function resetGame() {
   if (elements.turnSummary.open) elements.turnSummary.close();
   if (elements.scoreConfirmation.open) elements.scoreConfirmation.close();
   if (elements.invalidGame.open) elements.invalidGame.close();
+  elements.returnToHandoff.hidden = true;
   render();
 }
 
@@ -407,6 +424,8 @@ document.querySelector("#play-again").addEventListener("click", resetGame);
 document.querySelector("#handoff-new-game").addEventListener("click", resetGame);
 document.querySelector("#invalid-new-game").addEventListener("click", resetGame);
 document.querySelector("#copy-link").addEventListener("click", copyGameLink);
+document.querySelector("#browse-ledger").addEventListener("click", browseLedger);
+elements.returnToHandoff.addEventListener("click", reopenHandoff);
 document.querySelector("#continue-game").addEventListener("click", () => elements.turnSummary.close());
 document.querySelector("#cancel-score").addEventListener("click", cancelScore);
 document.querySelector("#confirm-score-button").addEventListener("click", confirmScore);
