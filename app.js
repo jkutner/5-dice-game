@@ -129,7 +129,7 @@ async function createGameUrl() {
   const url = new URL(window.location.href);
   url.search = "";
   url.hash = "";
-  url.searchParams.set("game", `${payload}.${signature}`);
+  url.searchParams.set("g", `${payload}.${signature}`);
   return url.toString();
 }
 
@@ -208,7 +208,7 @@ function isValidHistory(history, scores) {
 }
 
 async function loadGameFromUrl() {
-  const encoded = new URLSearchParams(window.location.search).get("game");
+  const encoded = new URLSearchParams(window.location.search).get("g");
   if (!encoded) return true;
 
   try {
