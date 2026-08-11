@@ -15,7 +15,8 @@ const CATEGORIES = [
 ];
 
 const UPPER_IDS = CATEGORIES.filter((category) => category.section === "upper").map((category) => category.id);
-const GAME_VERSION = 1;
+const LEGACY_GAME_VERSION = 1;
+const COMPACT_GAME_VERSION = 2;
 const PIP_POSITIONS = {
   1: [4], 2: [1, 7], 3: [1, 4, 7], 4: [1, 2, 6, 7],
   5: [1, 2, 4, 6, 7], 6: [1, 2, 3, 5, 6, 7]
@@ -88,23 +89,95 @@ async function checksum(value) {
   return bytesToBase64Url(new Uint8Array(digest)).slice(0, 16);
 }
 
-function serializedGame() {
-  return {
-    v: GAME_VERSION,
-    p: state.activePlayer,
-    s: state.players.map((player) => CATEGORIES.map((category) => player.scores[category.id])),
-    h: state.history
-  };
+function writeBits(bytes, position, value, length) {
+  for (let bit = length - 1; bit >= 0; bit--) {
+    const byteIndex = Math.floor(position / 8);
+    bytes[byteIndex] |= ((value >> bit) & 1) << (7 - (position % 8));
+    position++;
+  }
+  return position;
+}
+
+function readBits(bytes, position, length) {
+  let value = 0;
+  for (let bit = 0; bit < length; bit++) {
+    value = (value << 1) | ((bytes[Math.floor(position / 8)] >> (7 - (position % 8))) & 1);
+    position++;
+  }
+  return { value, position };
+}
+
+function encodeCompactGame() {
+  const bytes = new Uint8Array(Math.ceil((8 + state.history.length * 17) / 8));
+  let position = 0;
+  position = writeBits(bytes, position, COMPACT_GAME_VERSION, 3);
+  position = writeBits(bytes, position, state.history.length, 5);
+
+  state.history.forEach(([, categoryIndex, dice]) => {
+    const diceCode = dice.reduce((value, die) => value * 6 + die - 1, 0);
+    position = writeBits(bytes, position, categoryIndex, 4);
+    position = writeBits(bytes, position, diceCode, 13);
+  });
+  return bytesToBase64Url(bytes);
 }
 
 async function createGameUrl() {
-  const payload = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(serializedGame())));
+  const payload = encodeCompactGame();
   const signature = await checksum(payload);
   const url = new URL(window.location.href);
   url.search = "";
   url.hash = "";
   url.searchParams.set("game", `${payload}.${signature}`);
   return url.toString();
+}
+
+function decodeCompactGame(bytes) {
+  let position = 0;
+  let result = readBits(bytes, position, 3);
+  const version = result.value;
+  position = result.position;
+  result = readBits(bytes, position, 5);
+  const turnCount = result.value;
+  position = result.position;
+
+  if (version !== COMPACT_GAME_VERSION || turnCount > CATEGORIES.length * 2 || bytes.length !== Math.ceil((8 + turnCount * 17) / 8)) {
+    throw new Error("Invalid compact game header");
+  }
+
+  const scores = [Array(CATEGORIES.length).fill(null), Array(CATEGORIES.length).fill(null)];
+  const history = [];
+  for (let turn = 0; turn < turnCount; turn++) {
+    result = readBits(bytes, position, 4);
+    const categoryIndex = result.value;
+    position = result.position;
+    result = readBits(bytes, position, 13);
+    let diceCode = result.value;
+    position = result.position;
+    const player = turn % 2;
+
+    if (!CATEGORIES[categoryIndex] || diceCode >= 6 ** 5 || scores[player][categoryIndex] !== null) {
+      throw new Error("Invalid compact turn");
+    }
+
+    const dice = Array(5);
+    for (let index = dice.length - 1; index >= 0; index--) {
+      dice[index] = (diceCode % 6) + 1;
+      diceCode = Math.floor(diceCode / 6);
+    }
+    const score = scoreDice(CATEGORIES[categoryIndex].id, dice);
+    scores[player][categoryIndex] = score;
+    history.push([player, categoryIndex, dice, score]);
+  }
+  return { activePlayer: turnCount % 2, scores, history };
+}
+
+function decodeLegacyGame(bytes) {
+  const game = JSON.parse(new TextDecoder().decode(bytes));
+  if (game.v !== LEGACY_GAME_VERSION || ![0, 1].includes(game.p) || !isValidScores(game.s) || !isValidHistory(game.h, game.s)) {
+    throw new Error("Invalid legacy game");
+  }
+  if (game.h.length % 2 !== game.p) throw new Error("Invalid active player");
+  return { activePlayer: game.p, scores: game.s, history: game.h };
 }
 
 function isValidScores(scores) {
@@ -139,18 +212,17 @@ async function loadGameFromUrl() {
   try {
     const parts = encoded.split(".");
     if (parts.length !== 2 || await checksum(parts[0]) !== parts[1]) return false;
-    const game = JSON.parse(new TextDecoder().decode(base64UrlToBytes(parts[0])));
-    if (game.v !== GAME_VERSION || ![0, 1].includes(game.p) || !isValidScores(game.s) || !isValidHistory(game.h, game.s)) return false;
-    if (game.h.length % 2 !== game.p) return false;
+    const bytes = base64UrlToBytes(parts[0]);
+    const game = bytes[0] === 123 ? decodeLegacyGame(bytes) : decodeCompactGame(bytes);
 
     state.players.forEach((player, playerIndex) => {
       CATEGORIES.forEach((category, categoryIndex) => {
-        player.scores[category.id] = game.s[playerIndex][categoryIndex];
+        player.scores[category.id] = game.scores[playerIndex][categoryIndex];
       });
     });
-    state.activePlayer = game.p;
-    state.viewedPlayer = game.p;
-    state.history = game.h;
+    state.activePlayer = game.activePlayer;
+    state.viewedPlayer = game.activePlayer;
+    state.history = game.history;
     return true;
   } catch {
     return false;

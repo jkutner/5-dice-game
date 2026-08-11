@@ -9,7 +9,7 @@ A remote two-player Yahtzee single-page app built with HTML, CSS, and JavaScript
 3. Player Two opens the link, takes a turn, and sends the new link back.
 4. Continue exchanging links until the final score is recorded.
 
-The game payload is Base64URL-encoded and protected by a SHA-256 checksum. It is portable rather than secret: anyone with the URL can view the game, and no game data is stored on a server.
+The game payload stores each turn in a compact binary format, is Base64URL-encoded, and is protected by a SHA-256 checksum. It is portable rather than secret: anyone with the URL can view the game, and no game data is stored on a server.
 
 ## Run locally
 
